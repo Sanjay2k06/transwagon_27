@@ -6,62 +6,92 @@ export function PageTransitionSplash() {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
   const previousPathRef = useRef<string | null>(null);
-  const [animating, setAnimating] = useState(false);
 
+  // Splash active on opening any page AND on subsequent page navigation
+  const [active, setActive] = useState(true);
+
+  // Trigger branded text splash on initial open and route transitions
   useEffect(() => {
-    // Skip on initial mount so home splash / initial page can display naturally
-    if (previousPathRef.current === null) {
-      previousPathRef.current = currentPath;
-      return;
-    }
+    setActive(true);
+    const duration = previousPathRef.current === null ? 900 : 650;
+    const timer = window.setTimeout(() => {
+      setActive(false);
+    }, duration);
+    previousPathRef.current = currentPath;
 
-    if (previousPathRef.current !== currentPath) {
-      previousPathRef.current = currentPath;
-      setAnimating(true);
-      const timer = window.setTimeout(() => {
-        setAnimating(false);
-      }, 550);
-      return () => window.clearTimeout(timer);
-    }
+    return () => window.clearTimeout(timer);
   }, [currentPath]);
+
+  // Lock background scroll during splash to prevent content jumps or bleed-through
+  useEffect(() => {
+    if (active) {
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    };
+  }, [active]);
 
   return (
     <AnimatePresence>
-      {animating && (
+      {active && (
         <motion.div
-          key={currentPath}
-          className="fixed inset-0 z-[999] pointer-events-none flex flex-col items-center justify-center bg-black overflow-hidden"
-          initial={{ opacity: 0 }}
+          key="transwagon-branded-text-splash"
+          className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#000000] text-white overflow-hidden select-none touch-none w-screen h-screen h-[100dvh]"
+          initial={{ opacity: 1 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.28, ease: "easeInOut" }}
-          aria-hidden="true"
+          transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="TRANSWAGON Transition"
         >
-          {/* Subtle background glow */}
-          <div className="absolute inset-0 bg-radial from-zinc-900/60 to-black pointer-events-none" />
+          {/* Subtle Monochrome Vignette */}
+          <div className="absolute inset-0 bg-radial from-zinc-900/40 to-black pointer-events-none" />
 
-          {/* Type Variant Stencil Expansion Animation */}
+          {/* Centered Branded Stencil & Typography */}
           <motion.div
-            className="relative z-10 flex flex-col items-center justify-center text-center px-4"
-            initial={{ scale: 0.92, opacity: 0 }}
-            animate={{ scale: [0.92, 1, 1.08], opacity: [0, 1, 1] }}
-            exit={{ scale: 1.15, opacity: 0 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="relative z-10 flex flex-col items-center justify-center text-center px-4 max-w-xl mx-auto"
+            initial={{ opacity: 0, scale: 0.94, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 1.03, y: -6 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           >
             <motion.img
               src="/images/transwagon-truck-white.png"
               alt="TRANSWAGON"
-              className="w-16 sm:w-20 h-auto object-contain mb-4 filter drop-shadow(0 4px 12px rgba(0,0,0,0.5))"
-              initial={{ y: 8, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.35, delay: 0.05 }}
+              className="w-16 sm:w-20 md:w-24 h-auto object-contain mb-4 filter drop-shadow(0 4px 18px rgba(0, 0, 0, 0.8))"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.38, delay: 0.05 }}
             />
-            <h1 className="font-display font-black text-4xl sm:text-6xl md:text-7xl uppercase tracking-tighter text-white">
+            <motion.h1
+              className="font-display font-black text-3xl sm:text-5xl md:text-6xl uppercase tracking-tight text-white drop-shadow-2xl"
+              initial={{ opacity: 0, letterSpacing: "0.06em" }}
+              animate={{ opacity: 1, letterSpacing: "-0.01em" }}
+              transition={{ duration: 0.48, delay: 0.08 }}
+            >
               TRANSWAGON
-            </h1>
-            <p className="mt-2 text-[10px] sm:text-xs font-mono uppercase tracking-[0.28em] text-zinc-400">
+            </motion.h1>
+            <motion.p
+              className="mt-2.5 text-[10px] sm:text-xs md:text-sm font-mono uppercase tracking-[0.24em] text-zinc-300 max-w-md mx-auto leading-relaxed"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.16 }}
+            >
               QUALITY COACH BUILDERS &amp; GENERAL FABRICATORS
-            </p>
+            </motion.p>
+            <motion.div
+              className="w-12 sm:w-16 h-[2px] bg-white/80 mt-4"
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: 0.4, delay: 0.22 }}
+            />
           </motion.div>
         </motion.div>
       )}

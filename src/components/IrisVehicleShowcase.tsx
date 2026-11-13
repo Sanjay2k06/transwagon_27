@@ -57,8 +57,8 @@ export function IrisVehicleShowcase({
         },
       });
 
-      // 1. Iris expansion: 0% -> 165% from progress 0 to 0.68
-      // At 165%, the circle has fully cleared all 4 corners of the frame
+      // 1. Iris expansion: 0% -> 185% from progress 0 to 0.68
+      // At 185%, the circle has fully cleared all 4 corners of any screen size (desktop, tablet, mobile portrait)
       tl.fromTo(
         mask,
         {
@@ -66,8 +66,8 @@ export function IrisVehicleShowcase({
           WebkitClipPath: "circle(0% at 50% 50%)",
         },
         {
-          clipPath: "circle(165% at 50% 50%)",
-          WebkitClipPath: "circle(165% at 50% 50%)",
+          clipPath: "circle(185% at 50% 50%)",
+          WebkitClipPath: "circle(185% at 50% 50%)",
           ease: "power2.inOut",
           duration: 0.68,
         },
@@ -78,7 +78,7 @@ export function IrisVehicleShowcase({
       if (image) {
         tl.fromTo(
           image,
-          { scale: 1.15, y: "-2%" },
+          { scale: 1.12, y: "-2%" },
           { scale: 1.0, y: "0%", ease: "power1.out", duration: 0.68 },
           0,
         );
@@ -105,12 +105,12 @@ export function IrisVehicleShowcase({
       {/* Pinned Viewport Container - Locked by GSAP during scroll */}
       <div
         ref={pinContainerRef}
-        className="w-full h-screen relative overflow-hidden select-none bg-black"
+        className="w-full h-screen h-[100dvh] relative overflow-hidden select-none bg-black"
       >
-        {/* IRIS-MASKED FULL-BLEED VEHICLE IMAGE FILLING FULL AVAILABLE SPACE */}
+        {/* IRIS-MASKED FULL-BLEED VEHICLE IMAGE FILLING FULL AVAILABLE SPACE WITHOUT BLACK GAPS */}
         <div
           ref={maskRef}
-          className="absolute inset-0 w-full h-full overflow-hidden will-change-[clip-path] bg-black flex items-center justify-center"
+          className="absolute inset-0 w-full h-full overflow-hidden will-change-[clip-path] bg-black"
           style={{
             clipPath: "circle(0% at 50% 50%)",
             WebkitClipPath: "circle(0% at 50% 50%)",
@@ -120,7 +120,7 @@ export function IrisVehicleShowcase({
             ref={imageRef}
             src={src}
             alt={alt}
-            className="w-full h-full object-contain md:object-cover object-center will-change-transform"
+            className="w-full h-full object-cover object-[48%_center] md:object-center will-change-transform"
             loading="eager"
           />
           {/* Subtle Contrast Overlay for Text Readability */}
