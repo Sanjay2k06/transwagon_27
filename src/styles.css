@@ -108,13 +108,19 @@
   }
 }
 
-/* Ultra-Clean Cinematic Splash Page with Fullscreen Background Video */
+/* Full-Screen Cinematic Workshop Video Splash Screen */
 .splash-screen {
   position: fixed;
   inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   width: 100vw;
+  width: 100dvw;
   height: 100vh;
-  z-index: 100;
+  height: 100dvh;
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -123,6 +129,7 @@
   color: #ffffff;
   padding: 0;
   margin: 0;
+  touch-action: none;
   cursor: pointer;
 }
 .splash-video-media {
@@ -137,15 +144,21 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center;
+  object-position: 55% center;
   opacity: 1;
-  filter: contrast(1.02) brightness(1);
+  filter: contrast(1.02) brightness(0.98);
+}
+@media (min-width: 768px) {
+  .splash-video {
+    object-position: center center;
+  }
 }
 .splash-video-tint {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.22);
+  background: rgba(0, 0, 0, 0.32);
   z-index: 1;
+  pointer-events: none;
 }
 .splash-brand {
   position: relative;
@@ -155,39 +168,41 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 1.15rem;
+  gap: 0.9rem;
   padding: 1.5rem;
   max-width: 90vw;
   pointer-events: none;
 }
 .splash-brand-logo {
-  width: clamp(80px, 11vw, 135px);
+  width: clamp(75px, 10vw, 130px);
   height: auto;
   object-fit: contain;
-  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.6));
+  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.75));
 }
 .splash-brand h1 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(2.2rem, 8.5vw, 6.2rem);
+  font-size: clamp(2rem, 7.5vw, 5.5rem);
   font-weight: 800;
   letter-spacing: -0.01em;
-  line-height: 0.95;
+  line-height: 1;
   text-transform: uppercase;
   color: #ffffff;
-  text-shadow: 0 4px 28px rgba(0, 0, 0, 0.75);
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.85);
   word-break: break-word;
   overflow-wrap: break-word;
 }
 .splash-brand p {
   margin: 0;
   font-family: var(--font-sans);
-  font-size: clamp(0.65rem, 1.8vw, 0.95rem);
+  font-size: clamp(0.6rem, 1.6vw, 0.9rem);
   font-weight: 600;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.95);
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.85);
+  max-width: 32rem;
+  line-height: 1.5;
   word-break: break-word;
   overflow-wrap: break-word;
 }
@@ -195,7 +210,12 @@
   width: clamp(48px, 6vw, 76px);
   height: 2px;
   background: rgba(255, 255, 255, 0.9);
-  margin-top: 0.25rem;
+  margin-top: 0.35rem;
+}
+.homepage-root {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
 }
 .brand-mark {
   display: inline-flex;

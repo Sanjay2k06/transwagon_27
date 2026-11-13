@@ -146,29 +146,84 @@ export const Route = createFileRoute("/")({
   component: TranswagonPage,
 });
 
+const SPLASH_SESSION_KEY = "transwagon_splash_session_v1";
+
+function getHasSeenSplashInSession(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return sessionStorage.getItem(SPLASH_SESSION_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function setHasSeenSplashInSession(): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(SPLASH_SESSION_KEY, "true");
+  } catch {
+    // Ignore storage errors (e.g. private browsing quota)
+  }
+}
+
 function TranswagonPage() {
   const prefersReducedMotion = useReducedMotion();
   const videoRef = useRef<HTMLVideoElement>(null);
   const splashVideoRef = useRef<HTMLVideoElement>(null);
   const aboutImageRef = useRef<HTMLDivElement>(null);
 
-  // Splash screen: displays immediately whenever the website is opened, reloaded, or accessed via direct URL
-  const [splashVisible, setSplashVisible] = useState(true);
+  // Splash screen: displays on the first homepage visit in a browser session
+  const [splashVisible, setSplashVisible] = useState(() => {
+    if (typeof window !== "undefined") {
+      return !getHasSeenSplashInSession();
+    }
+    return true;
+  });
   const [formSent, setFormSent] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
 
+  const dismissSplash = () => {
+    setHasSeenSplashInSession();
+    setSplashVisible(false);
+  };
+
   useEffect(() => {
-    if (!splashVisible) return;
-    // Attempt programmatic play for instant video playback on all mobile & desktop browsers
+    // If user already completed splash in this session, keep it dismissed
+    if (getHasSeenSplashInSession()) {
+      setSplashVisible(false);
+      return;
+    }
+
+    // Play actual workshop video immediately
     if (splashVideoRef.current) {
       splashVideoRef.current.play().catch(() => {});
     }
+
+    // Transition smoothly into homepage after video presentation
     const timer = window.setTimeout(
-      () => setSplashVisible(false),
-      prefersReducedMotion ? 400 : 3200,
+      () => {
+        dismissSplash();
+      },
+      prefersReducedMotion ? 400 : 3400,
     );
+
     return () => window.clearTimeout(timer);
-  }, [splashVisible, prefersReducedMotion]);
+  }, [prefersReducedMotion]);
+
+  // Lock background scrolling while splash is active to prevent homepage overlap
+  useEffect(() => {
+    if (splashVisible) {
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    };
+  }, [splashVisible]);
 
   // Global scroll-driven parallax for hero
   const { scrollY } = useScroll();
@@ -214,22 +269,24 @@ function TranswagonPage() {
 
   return (
     <>
-      {/* ULTRA-CLEAN CINEMATIC SPLASH PAGE */}
+      {/* 1. SEPARATE FULL-SCREEN CINEMATIC WORKSHOP VIDEO SPLASH OVERLAY */}
       <AnimatePresence>
         {splashVisible && (
           <motion.div
+            key="transwagon-workshop-splash"
             className="splash-screen"
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-            onClick={() => setSplashVisible(false)}
+            onClick={dismissSplash}
             role="banner"
-            aria-label="TRANSWAGON"
+            aria-label="TRANSWAGON Workshop Splash"
           >
-            {/* 1. Fullscreen Continuous Background Video */}
+            {/* Fullscreen Actual Company Workshop Video: public/images/IMG_2314.MOV */}
             <div className="splash-video-media">
               <video
                 ref={splashVideoRef}
+                src="/images/IMG_2314.MOV"
                 autoPlay
                 muted
                 loop
@@ -238,550 +295,579 @@ function TranswagonPage() {
                 poster="/images/work-3.jpg"
                 className="splash-video"
               >
-                <source src="/images/video.mp4" type="video/mp4" />
                 <source src="/images/IMG_2314.MOV" type="video/quicktime" />
+                <source src="/images/IMG_2314.MOV" type="video/mp4" />
+                <source src="/images/video.mp4" type="video/mp4" />
               </video>
+              {/* Subtle dark overlay only when necessary for typography contrast */}
               <div className="splash-video-tint" />
             </div>
 
-            {/* 2. Exactly Centered TRANSWAGON Branding */}
+            {/* Exactly Centered TRANSWAGON Branding */}
             <motion.div
               className="splash-brand"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
             >
               <img
                 src="/images/transwagon-truck-white.png"
-                alt="TRANSWAGON"
+                alt="TRANSWAGON Truck Logo"
                 className="splash-brand-logo"
               />
               <h1>TRANSWAGON</h1>
               <p>QUALITY COACH BUILDERS &amp; GENERAL FABRICATORS</p>
-              <div className="splash-brand-divider" />
+              <div className="splash-brand-divider" aria-hidden="true" />
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <SiteHeader />
+      {/* 2. HOMEPAGE CONTENT: KEPT HIDDEN UNDERNEATH WHILE SPLASH IS ACTIVE */}
+      <div
+        className={`homepage-root transition-opacity duration-700 ${
+          splashVisible
+            ? "opacity-0 pointer-events-none invisible select-none"
+            : "opacity-100 visible"
+        }`}
+      >
+        <SiteHeader />
 
-      <main>
-        {/* HERO SECTION */}
-        <section id="home" className="hero-section">
-          <motion.div className="hero-copy" style={{ y: heroCopyY }}>
-            <motion.div
-              className="eyebrow"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              Built around the work you do
+        <main>
+          {/* HERO SECTION */}
+          <section id="home" className="hero-section">
+            <motion.div className="hero-copy" style={{ y: heroCopyY }}>
+              <motion.div
+                className="eyebrow"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                Built around the work you do
+              </motion.div>
+
+              <motion.h1
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+              >
+                Purpose in every
+                <br />
+                <span>line of the road.</span>
+              </motion.h1>
+
+              {/* Interactive Stipple Type particle accent */}
+              <motion.div
+                className="mt-4 max-w-xl hidden md:block"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.25, duration: 0.6 }}
+              >
+                <StippleType
+                  text="TRANSWAGON // BANGALORE COACH BUILDERS"
+                  fontSize={24}
+                  density={4}
+                  stippleColor="#27272a"
+                />
+              </motion.div>
+
+              <motion.div
+                className="hero-bottom"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                <p>
+                  Transport solutions and vehicle craftsmanship, made to move your business forward.
+                  Precision-engineered commercial bodies, aerodynamic fairings, and custom EV
+                  conversions built for maximum payload efficiency.
+                </p>
+                <div className="hero-actions">
+                  <Button asChild size="lg" className="action-button">
+                    <Link to="/gallery">
+                      Explore vehicle builds <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" size="lg" className="action-button">
+                    <Link to="/contact">
+                      Consult engineering <ArrowUpRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </motion.div>
             </motion.div>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-            >
-              Purpose in every
-              <br />
-              <span>line of the road.</span>
-            </motion.h1>
-
-            {/* Interactive Stipple Type particle accent */}
+            {/* HERO BACKGROUND VIDEO - HIGH PRIORITY (NATURAL SPEED, INSTANT PLAYBACK, BRIGHT & SHARP) */}
             <motion.div
-              className="mt-4 max-w-xl hidden md:block"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.25, duration: 0.6 }}
+              className="hero-visual"
+              style={{ y: heroMediaY }}
+              initial={{ opacity: 0, scale: 0.99 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.15 }}
             >
-              <StippleType
-                text="TRANSWAGON // BANGALORE COACH BUILDERS"
-                fontSize={24}
-                density={4}
-                stippleColor="#27272a"
-              />
-            </motion.div>
+              <div className="hero-visual-media">
+                {!videoFailed ? (
+                  <video
+                    ref={videoRef}
+                    src="/images/video.mp4"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    preload="auto"
+                    poster="/images/work-3.jpg"
+                    className="hero-video"
+                    onError={() => setVideoFailed(true)}
+                  />
+                ) : (
+                  <img
+                    src="/images/work-3.jpg"
+                    alt="TRANSWAGON Coach Building"
+                    className="hero-video"
+                  />
+                )}
+                {/* Subtle contrast gradient only at extreme bottom, preserving full vehicle brightness */}
+                <div className="hero-video-tint" />
+              </div>
 
-            <motion.div
-              className="hero-bottom"
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <p>
-                Transport solutions and vehicle craftsmanship, made to move your business forward.
-                Precision-engineered commercial bodies, aerodynamic fairings, and custom EV
-                conversions built for maximum payload efficiency.
-              </p>
-              <div className="hero-actions">
-                <Button asChild size="lg" className="action-button">
-                  <Link to="/gallery">
-                    Explore vehicle builds <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" size="lg" className="action-button">
-                  <Link to="/contact">
-                    Consult engineering <ArrowUpRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
+              {/* Video Overlay Top Badge */}
+              <div className="hero-visual-top">
+                <div className="hero-visual-badge">
+                  <span className="pulse-dot" />
+                  <span>Heavy Transport Fabrication Unit</span>
+                </div>
+              </div>
+
+              {/* Video Overlay Center Minimalist Headline */}
+              <div className="hero-overlay-center">
+                <span className="text-xs uppercase font-mono tracking-widest text-zinc-300 mb-1">
+                  AERO CROWN · CONTAINER BODIES · HEAVY FABRICATION
+                </span>
+                <div className="hero-overlay-title">THE NEXT MILE STARTS HERE.</div>
+              </div>
+
+              {/* Video Overlay Bottom Bar */}
+              <div className="hero-visual-bottom">
+                <span>High-Tensile Steel & FRP Engineering · Bangalore Facility</span>
+                <a href="#about" className="scroll-cue">
+                  Scroll to explore <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />
+                </a>
               </div>
             </motion.div>
-          </motion.div>
+          </section>
 
-          {/* HERO BACKGROUND VIDEO - HIGH PRIORITY (NATURAL SPEED, INSTANT PLAYBACK, BRIGHT & SHARP) */}
-          <motion.div
-            className="hero-visual"
-            style={{ y: heroMediaY }}
-            initial={{ opacity: 0, scale: 0.99 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.15 }}
-          >
-            <div className="hero-visual-media">
-              {!videoFailed ? (
-                <video
-                  ref={videoRef}
-                  src="/images/video.mp4"
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  preload="auto"
-                  poster="/images/work-3.jpg"
-                  className="hero-video"
-                  onError={() => setVideoFailed(true)}
-                />
-              ) : (
-                <img
-                  src="/images/work-3.jpg"
-                  alt="TRANSWAGON Coach Building"
-                  className="hero-video"
-                />
-              )}
-              {/* Subtle contrast gradient only at extreme bottom, preserving full vehicle brightness */}
-              <div className="hero-video-tint" />
+          {/* ABOUT SECTION - EDITORIAL LAYOUT WITH PARALLAX */}
+          <section id="about" className="about-section section-pad">
+            <div className="section-index">
+              <span>About</span>
+              <span>Made to move you forward</span>
             </div>
 
-            {/* Video Overlay Top Badge */}
-            <div className="hero-visual-top">
-              <div className="hero-visual-badge">
-                <span className="pulse-dot" />
-                <span>Heavy Transport Fabrication Unit</span>
+            <div className="about-grid">
+              <div>
+                <Reveal>
+                  <h2 className="section-heading mb-6">
+                    The road asks
+                    <br />
+                    for <span>more.</span>
+                  </h2>
+                  <ScrollReveal
+                    baseOpacity={0.18}
+                    enableBlur={true}
+                    blurStrength={4}
+                    textClassName="lead-copy mb-6 text-foreground font-semibold"
+                  >
+                    We believe the best transport solutions are built with purpose, precision, and a
+                    genuine understanding of commercial duty cycles.
+                  </ScrollReveal>
+                  <ScrollReveal
+                    baseOpacity={0.2}
+                    enableBlur={true}
+                    blurStrength={3}
+                    textClassName="text-muted-foreground leading-relaxed mb-6"
+                  >
+                    TRANSWAGON combines heavy-duty structural steel fabrication, precision
+                    aerodynamic coach building, and specialized container conversions in Bangalore.
+                    From individual commercial operators to enterprise logistics fleets, we craft
+                    bodies engineered to endure tough operating conditions while maximizing usable
+                    payload.
+                  </ScrollReveal>
+                </Reveal>
+
+                {/* Technical Capability Stats with Scroll Reveal */}
+                <Reveal delay={0.1}>
+                  <div className="about-stats">
+                    <div className="about-stat-item">
+                      <span className="about-stat-value">100%</span>
+                      <span className="about-stat-label">Bespoke Engineering to Fleet Spec</span>
+                    </div>
+                    <div className="about-stat-item">
+                      <span className="about-stat-value">Heavy-Duty</span>
+                      <span className="about-stat-label">
+                        Corrugated Steel & Anti-Corrosion Primer
+                      </span>
+                    </div>
+                    <div className="about-stat-item">
+                      <span className="about-stat-value">Multi-Chassis</span>
+                      <span className="about-stat-label">
+                        Tata Ace, Mahindra, EV & Light Trucks
+                      </span>
+                    </div>
+                  </div>
+                </Reveal>
+
+                <Reveal delay={0.15}>
+                  <div className="mt-8 flex flex-wrap items-center gap-4">
+                    <Button asChild size="lg" className="action-button">
+                      <Link to="/about">
+                        Read our story & manufacturing pillars{" "}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <a
+                      href="https://transwagon-27demo.vercel.app/#showcase"
+                      onClick={(e) => {
+                        const el = document.getElementById("showcase");
+                        if (el) {
+                          e.preventDefault();
+                          el.scrollIntoView({ behavior: "smooth" });
+                          window.history.pushState(null, "", "#showcase");
+                        }
+                      }}
+                      className="text-xs font-bold tracking-wider uppercase inline-flex items-center gap-1.5 text-foreground hover:opacity-75 transition-opacity"
+                    >
+                      View scroll reveal <ArrowDown className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                </Reveal>
+              </div>
+
+              {/* Supporting Vehicle Fabrication Image Frame with Parallax */}
+              <div ref={aboutImageRef} className="flex flex-col gap-4">
+                <Reveal delay={0.08}>
+                  <div className="about-image-frame aspect-[4/3] rounded-none overflow-hidden relative">
+                    <motion.img
+                      src="/images/work-2.jpg"
+                      alt="TRANSWAGON Heavy Duty Utility Fabrication"
+                      loading="lazy"
+                      className="w-full h-full object-cover scale-110"
+                      style={{ y: aboutImgShift }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground px-1 mt-3">
+                    <span>Bangalore Manufacturing Facility</span>
+                    <span className="font-mono uppercase font-semibold">
+                      Magadi Main Road, Bangalore
+                    </span>
+                  </div>
+                </Reveal>
               </div>
             </div>
 
-            {/* Video Overlay Center Minimalist Headline */}
-            <div className="hero-overlay-center">
-              <span className="text-xs uppercase font-mono tracking-widest text-zinc-300 mb-1">
-                AERO CROWN · CONTAINER BODIES · HEAVY FABRICATION
-              </span>
-              <div className="hero-overlay-title">THE NEXT MILE STARTS HERE.</div>
+            <div className="about-footnote">
+              <span>Reliable by design.</span>
+              <span>Crafted for the long haul.</span>
+            </div>
+          </section>
+
+          {/* IRIS ANIMATION VEHICLE SHOWCASE - SCROLL-LOCKED REVEAL */}
+          <IrisVehicleShowcase src="/images/work-1.jpg" alt="TRANSWAGON Commercial Vehicle Build" />
+
+          {/* SERVICES SECTION - CLEAN VISUAL PRESENTATION (NO REPETITIVE CARDS) */}
+          <section id="services" className="services-section section-pad">
+            <div className="section-index">
+              <span>Services</span>
+              <span>Four ways to get you there</span>
             </div>
 
-            {/* Video Overlay Bottom Bar */}
-            <div className="hero-visual-bottom">
-              <span>High-Tensile Steel & FRP Engineering · Bangalore Facility</span>
-              <a href="#about" className="scroll-cue">
-                Scroll to explore <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />
-              </a>
-            </div>
-          </motion.div>
-        </section>
-
-        {/* ABOUT SECTION - EDITORIAL LAYOUT WITH PARALLAX */}
-        <section id="about" className="about-section section-pad">
-          <div className="section-index">
-            <span>About</span>
-            <span>Made to move you forward</span>
-          </div>
-
-          <div className="about-grid">
-            <div>
+            <div className="services-heading-row">
               <Reveal>
-                <h2 className="section-heading mb-6">
-                  The road asks
+                <h2 className="section-heading">
+                  Built for
                   <br />
-                  for <span>more.</span>
+                  <span>what’s next.</span>
+                </h2>
+              </Reveal>
+              <ScrollReveal
+                baseOpacity={0.2}
+                enableBlur={true}
+                blurStrength={4}
+                textClassName="text-muted-foreground text-sm sm:text-base leading-relaxed max-w-sm"
+              >
+                Practical expertise and careful execution, bringing your transport needs to life.
+              </ScrollReveal>
+            </div>
+
+            <div className="service-list">
+              {services.map((service, index) => (
+                <Reveal key={service.number} delay={index * 0.05}>
+                  <article className="service-row group">
+                    <span className="service-number font-mono">{service.number}</span>
+                    <div>
+                      <h3 className="group-hover:text-primary transition-colors">
+                        {service.title}
+                      </h3>
+                      <p className="mt-1 font-mono text-xs text-muted-foreground">
+                        {service.specs}
+                      </p>
+                    </div>
+                    <div className="service-row-desc">
+                      <p>{service.description}</p>
+                      <div className="service-tags mt-2">
+                        {service.tags.map((tag) => (
+                          <span key={tag} className="service-tag">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <ArrowUpRight className="service-arrow shrink-0" aria-hidden="true" />
+                  </article>
+                </Reveal>
+              ))}
+            </div>
+          </section>
+
+          {/* VEHICLE GALLERY - 5 AUTHENTIC BUILD ITEMS WITH PARALLAX */}
+          <section id="work" className="work-section section-pad">
+            <div className="section-index">
+              <span>Vehicle Gallery</span>
+              <span>01 — 05 Proven in Service</span>
+            </div>
+
+            <div className="work-heading-row">
+              <Reveal>
+                <h2 className="section-heading">
+                  A closer look
+                  <br />
+                  at <span>the craft.</span>
+                </h2>
+              </Reveal>
+              <Reveal delay={0.1}>
+                <p>Real vehicle fabrications and coach builds engineered for the road.</p>
+              </Reveal>
+            </div>
+
+            <div className="work-grid">
+              {workItems.map((item, index) => (
+                <ParallaxWorkCard key={item.number} item={item} index={index} />
+              ))}
+            </div>
+
+            {/* Redirection banner to Gallery page with Scroll Reveal */}
+            <Reveal delay={0.15}>
+              <div className="mt-16 border border-border bg-card p-8 md:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm">
+                <div>
+                  <span className="text-[11px] font-bold tracking-widest uppercase text-muted-foreground">
+                    Dedicated Vehicle Portfolio
+                  </span>
+                  <h3 className="text-xl md:text-2xl font-bold font-display mt-1 text-foreground">
+                    Explore more builds, specs & workshop video
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1 max-w-2xl leading-relaxed">
+                    Filter by container bodies, coach building, aerodynamic fairings, and electric
+                    vehicle adaptations. Inspect technical dimensions and workshop recordings.
+                  </p>
+                </div>
+                <Button asChild size="lg" className="action-button shrink-0">
+                  <Link to="/gallery">
+                    View Full Gallery <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            </Reveal>
+          </section>
+
+          {/* THE DIFFERENCE SECTION */}
+          <section className="reasons-section section-pad">
+            <div className="section-index">
+              <span>The Difference</span>
+              <span>Good work, done thoughtfully</span>
+            </div>
+
+            <div className="reasons-grid">
+              <Reveal>
+                <h2 className="section-heading">
+                  Trust is built
+                  <br />
+                  <span>into the work.</span>
                 </h2>
                 <ScrollReveal
-                  baseOpacity={0.18}
+                  baseOpacity={0.2}
                   enableBlur={true}
-                  blurStrength={4}
-                  textClassName="lead-copy mb-6 text-foreground font-semibold"
+                  blurStrength={3}
+                  textClassName="text-muted-foreground text-sm leading-relaxed mt-4 max-w-sm"
                 >
-                  We believe the best transport solutions are built with purpose, precision, and a
-                  genuine understanding of commercial duty cycles.
+                  Every weld, bracket, and cross-member undergoes rigorous inspection to ensure
+                  long-term durability on Indian highways.
                 </ScrollReveal>
                 <ScrollReveal
                   baseOpacity={0.2}
                   enableBlur={true}
                   blurStrength={3}
-                  textClassName="text-muted-foreground leading-relaxed mb-6"
+                  textClassName="text-muted-foreground text-sm leading-relaxed mt-4 max-w-sm"
                 >
-                  TRANSWAGON combines heavy-duty structural steel fabrication, precision aerodynamic
-                  coach building, and specialized container conversions in Bangalore. From
-                  individual commercial operators to enterprise logistics fleets, we craft bodies
-                  engineered to endure tough operating conditions while maximizing usable payload.
+                  Every weld, bracket, and cross-member undergoes rigorous inspection to ensure
+                  long-term durability on Indian highways.
                 </ScrollReveal>
               </Reveal>
+              <div className="reason-list">
+                {reasons.map((reason, index) => (
+                  <Reveal key={reason.title} delay={index * 0.05}>
+                    <article className="reason-row">
+                      <span className="reason-check bg-background">
+                        <Check className="text-foreground" aria-hidden="true" />
+                      </span>
+                      <div>
+                        <h3>{reason.title}</h3>
+                        <p>{reason.text}</p>
+                      </div>
+                    </article>
+                  </Reveal>
+                ))}
+              </div>
+            </div>
+          </section>
 
-              {/* Technical Capability Stats with Scroll Reveal */}
-              <Reveal delay={0.1}>
-                <div className="about-stats">
-                  <div className="about-stat-item">
-                    <span className="about-stat-value">100%</span>
-                    <span className="about-stat-label">Bespoke Engineering to Fleet Spec</span>
-                  </div>
-                  <div className="about-stat-item">
-                    <span className="about-stat-value">Heavy-Duty</span>
-                    <span className="about-stat-label">
-                      Corrugated Steel & Anti-Corrosion Primer
-                    </span>
-                  </div>
-                  <div className="about-stat-item">
-                    <span className="about-stat-value">Multi-Chassis</span>
-                    <span className="about-stat-label">Tata Ace, Mahindra, EV & Light Trucks</span>
-                  </div>
-                </div>
-              </Reveal>
+          {/* CONTACT SECTION */}
+          <section id="contact" className="contact-section section-pad">
+            <div className="section-index">
+              <span>Contact</span>
+              <span>Let’s get moving</span>
+            </div>
 
-              <Reveal delay={0.15}>
-                <div className="mt-8 flex flex-wrap items-center gap-4">
-                  <Button asChild size="lg" className="action-button">
-                    <Link to="/about">
-                      Read our story & manufacturing pillars <ArrowRight className="ml-2 h-4 w-4" />
+            <Reveal>
+              <div className="contact-intro">
+                <p className="eyebrow">Your next build starts here</p>
+                <h2 className="section-heading">
+                  Let’s build
+                  <br />
+                  <span>something lasting.</span>
+                </h2>
+              </div>
+            </Reveal>
+
+            <div className="contact-grid">
+              <div className="contact-details">
+                <Reveal delay={0.05}>
+                  <a className="contact-item group" href="tel:+918197810561">
+                    <span>Call workshop directly</span>
+                    <strong>+91 8197810561</strong>
+                    <ArrowUpRight aria-hidden="true" />
+                  </a>
+                </Reveal>
+
+                <Reveal delay={0.1}>
+                  <a
+                    className="contact-item group"
+                    href="https://wa.me/918197810561?text=Hi%20TRANSWAGON%2C%20I%20would%20like%20to%20enquire%20about%20vehicle%20body%20fabrication."
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <span>WhatsApp consultation</span>
+                    <strong>+91 8197810561</strong>
+                    <ArrowUpRight aria-hidden="true" />
+                  </a>
+                </Reveal>
+
+                <Reveal delay={0.15}>
+                  <a
+                    className="contact-item group"
+                    href="https://www.instagram.com/trans.wagon27?utm_source=qr&igsh=MWoxbnNsa3lrcjJkbQ%3D%3D"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <span>Follow on Instagram</span>
+                    <strong>@trans.wagon27</strong>
+                    <ArrowUpRight aria-hidden="true" />
+                  </a>
+                </Reveal>
+
+                <Reveal delay={0.2}>
+                  <a className="contact-item group" href="mailto:trans.wagon27@gmail.com">
+                    <span>Email enquiry</span>
+                    <strong>trans.wagon27@gmail.com</strong>
+                    <ArrowUpRight aria-hidden="true" />
+                  </a>
+                </Reveal>
+
+                <Reveal delay={0.25}>
+                  <a
+                    className="contact-item address-item group"
+                    href="https://www.google.com/maps/dir/?api=1&destination=%2389%2F5%2C+Magadi+Main+Road%2C+Kodigehalli+Post%2C+Segehalli+Village%2C+Bangalore+91"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <span>Visit manufacturing facility</span>
+                    <strong>
+                      #89/5, Magadi Main Road,
+                      <br />
+                      Kodigehalli Post, Segehalli Village,
+                      <br />
+                      Bangalore – 91
+                    </strong>
+                    <ArrowUpRight aria-hidden="true" />
+                  </a>
+                </Reveal>
+
+                <div className="pt-6">
+                  <Button asChild variant="outline" size="sm" className="action-button">
+                    <Link to="/contact">
+                      Open Dedicated Contact & Workshop Page <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
-                  <a
-                    href="#showcase"
-                    className="text-xs font-bold tracking-wider uppercase inline-flex items-center gap-1.5 text-foreground hover:opacity-75 transition-opacity"
-                  >
-                    View scroll reveal <ArrowDown className="h-3.5 w-3.5" />
-                  </a>
                 </div>
-              </Reveal>
-            </div>
-
-            {/* Supporting Vehicle Fabrication Image Frame with Parallax */}
-            <div ref={aboutImageRef} className="flex flex-col gap-4">
-              <Reveal delay={0.08}>
-                <div className="about-image-frame aspect-[4/3] rounded-none overflow-hidden relative">
-                  <motion.img
-                    src="/images/work-2.jpg"
-                    alt="TRANSWAGON Heavy Duty Utility Fabrication"
-                    loading="lazy"
-                    className="w-full h-full object-cover scale-110"
-                    style={{ y: aboutImgShift }}
-                  />
-                </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground px-1 mt-3">
-                  <span>Bangalore Manufacturing Facility</span>
-                  <span className="font-mono uppercase font-semibold">
-                    Magadi Main Road, Bangalore
-                  </span>
-                </div>
-              </Reveal>
-            </div>
-          </div>
-
-          <div className="about-footnote">
-            <span>Reliable by design.</span>
-            <span>Crafted for the long haul.</span>
-          </div>
-        </section>
-
-        {/* IRIS ANIMATION VEHICLE SHOWCASE - SCROLL-LOCKED REVEAL */}
-        <IrisVehicleShowcase src="/images/work-1.jpg" alt="TRANSWAGON Commercial Vehicle Build" />
-
-        {/* SERVICES SECTION - CLEAN VISUAL PRESENTATION (NO REPETITIVE CARDS) */}
-        <section id="services" className="services-section section-pad">
-          <div className="section-index">
-            <span>Services</span>
-            <span>Four ways to get you there</span>
-          </div>
-
-          <div className="services-heading-row">
-            <Reveal>
-              <h2 className="section-heading">
-                Built for
-                <br />
-                <span>what’s next.</span>
-              </h2>
-            </Reveal>
-            <ScrollReveal
-              baseOpacity={0.2}
-              enableBlur={true}
-              blurStrength={4}
-              textClassName="text-muted-foreground text-sm sm:text-base leading-relaxed max-w-sm"
-            >
-              Practical expertise and careful execution, bringing your transport needs to life.
-            </ScrollReveal>
-          </div>
-
-          <div className="service-list">
-            {services.map((service, index) => (
-              <Reveal key={service.number} delay={index * 0.05}>
-                <article className="service-row group">
-                  <span className="service-number font-mono">{service.number}</span>
-                  <div>
-                    <h3 className="group-hover:text-primary transition-colors">{service.title}</h3>
-                    <p className="mt-1 font-mono text-xs text-muted-foreground">{service.specs}</p>
-                  </div>
-                  <div className="service-row-desc">
-                    <p>{service.description}</p>
-                    <div className="service-tags mt-2">
-                      {service.tags.map((tag) => (
-                        <span key={tag} className="service-tag">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <ArrowUpRight className="service-arrow shrink-0" aria-hidden="true" />
-                </article>
-              </Reveal>
-            ))}
-          </div>
-        </section>
-
-        {/* VEHICLE GALLERY - 5 AUTHENTIC BUILD ITEMS WITH PARALLAX */}
-        <section id="work" className="work-section section-pad">
-          <div className="section-index">
-            <span>Vehicle Gallery</span>
-            <span>01 — 05 Proven in Service</span>
-          </div>
-
-          <div className="work-heading-row">
-            <Reveal>
-              <h2 className="section-heading">
-                A closer look
-                <br />
-                at <span>the craft.</span>
-              </h2>
-            </Reveal>
-            <Reveal delay={0.1}>
-              <p>Real vehicle fabrications and coach builds engineered for the road.</p>
-            </Reveal>
-          </div>
-
-          <div className="work-grid">
-            {workItems.map((item, index) => (
-              <ParallaxWorkCard key={item.number} item={item} index={index} />
-            ))}
-          </div>
-
-          {/* Redirection banner to Gallery page with Scroll Reveal */}
-          <Reveal delay={0.15}>
-            <div className="mt-16 border border-border bg-card p-8 md:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm">
-              <div>
-                <span className="text-[11px] font-bold tracking-widest uppercase text-muted-foreground">
-                  Dedicated Vehicle Portfolio
-                </span>
-                <h3 className="text-xl md:text-2xl font-bold font-display mt-1 text-foreground">
-                  Explore more builds, specs & workshop video
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1 max-w-2xl leading-relaxed">
-                  Filter by container bodies, coach building, aerodynamic fairings, and electric
-                  vehicle adaptations. Inspect technical dimensions and workshop recordings.
-                </p>
               </div>
-              <Button asChild size="lg" className="action-button shrink-0">
-                <Link to="/gallery">
-                  View Full Gallery <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          </Reveal>
-        </section>
-
-        {/* THE DIFFERENCE SECTION */}
-        <section className="reasons-section section-pad">
-          <div className="section-index">
-            <span>The Difference</span>
-            <span>Good work, done thoughtfully</span>
-          </div>
-
-          <div className="reasons-grid">
-            <Reveal>
-              <h2 className="section-heading">
-                Trust is built
-                <br />
-                <span>into the work.</span>
-              </h2>
-              <ScrollReveal
-                baseOpacity={0.2}
-                enableBlur={true}
-                blurStrength={3}
-                textClassName="text-muted-foreground text-sm leading-relaxed mt-4 max-w-sm"
-              >
-                Every weld, bracket, and cross-member undergoes rigorous inspection to ensure
-                long-term durability on Indian highways.
-              </ScrollReveal>
-              <ScrollReveal
-                baseOpacity={0.2}
-                enableBlur={true}
-                blurStrength={3}
-                textClassName="text-muted-foreground text-sm leading-relaxed mt-4 max-w-sm"
-              >
-                Every weld, bracket, and cross-member undergoes rigorous inspection to ensure
-                long-term durability on Indian highways.
-              </ScrollReveal>
-            </Reveal>
-            <div className="reason-list">
-              {reasons.map((reason, index) => (
-                <Reveal key={reason.title} delay={index * 0.05}>
-                  <article className="reason-row">
-                    <span className="reason-check bg-background">
-                      <Check className="text-foreground" aria-hidden="true" />
-                    </span>
-                    <div>
-                      <h3>{reason.title}</h3>
-                      <p>{reason.text}</p>
-                    </div>
-                  </article>
-                </Reveal>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* CONTACT SECTION */}
-        <section id="contact" className="contact-section section-pad">
-          <div className="section-index">
-            <span>Contact</span>
-            <span>Let’s get moving</span>
-          </div>
-
-          <Reveal>
-            <div className="contact-intro">
-              <p className="eyebrow">Your next build starts here</p>
-              <h2 className="section-heading">
-                Let’s build
-                <br />
-                <span>something lasting.</span>
-              </h2>
-            </div>
-          </Reveal>
-
-          <div className="contact-grid">
-            <div className="contact-details">
-              <Reveal delay={0.05}>
-                <a className="contact-item group" href="tel:+918197810561">
-                  <span>Call workshop directly</span>
-                  <strong>+91 8197810561</strong>
-                  <ArrowUpRight aria-hidden="true" />
-                </a>
-              </Reveal>
 
               <Reveal delay={0.1}>
-                <a
-                  className="contact-item group"
-                  href="https://wa.me/918197810561?text=Hi%20TRANSWAGON%2C%20I%20would%20like%20to%20enquire%20about%20vehicle%20body%20fabrication."
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <span>WhatsApp consultation</span>
-                  <strong>+91 8197810561</strong>
-                  <ArrowUpRight aria-hidden="true" />
-                </a>
+                <form className="contact-form" onSubmit={submitContact}>
+                  <div className="form-heading">
+                    <span>Tell us about your chassis & vehicle specs.</span>
+                    <span>We’ll provide a quotation promptly.</span>
+                  </div>
+                  <label htmlFor="contact-name">Your name / Company</label>
+                  <input
+                    id="contact-name"
+                    name="name"
+                    autoComplete="name"
+                    required
+                    placeholder="Name or Fleet Operator"
+                  />
+                  <label htmlFor="contact-email">Email or Phone number</label>
+                  <input
+                    id="contact-email"
+                    name="email"
+                    type="text"
+                    autoComplete="email"
+                    required
+                    placeholder="you@company.com or 10-digit number"
+                  />
+                  <label htmlFor="contact-message">
+                    Chassis model, body requirements & timeline
+                  </label>
+                  <textarea
+                    id="contact-message"
+                    name="message"
+                    required
+                    rows={3}
+                    placeholder="E.g., Tata Ace EV container body, 8-ft closed box with aerodynamic crown..."
+                  />
+                  <Button type="submit" size="lg" className="form-submit action-button">
+                    Send an enquiry
+                  </Button>
+                  {formSent && (
+                    <p className="mt-3 text-xs font-semibold text-emerald-600">
+                      Opening WhatsApp to message +91 8197810561 with your enquiry.
+                    </p>
+                  )}
+                </form>
               </Reveal>
-
-              <Reveal delay={0.15}>
-                <a
-                  className="contact-item group"
-                  href="https://www.instagram.com/trans.wagon27?utm_source=qr&igsh=MWoxbnNsa3lrcjJkbQ%3D%3D"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <span>Follow on Instagram</span>
-                  <strong>@trans.wagon27</strong>
-                  <ArrowUpRight aria-hidden="true" />
-                </a>
-              </Reveal>
-
-              <Reveal delay={0.2}>
-                <a className="contact-item group" href="mailto:trans.wagon27@gmail.com">
-                  <span>Email enquiry</span>
-                  <strong>trans.wagon27@gmail.com</strong>
-                  <ArrowUpRight aria-hidden="true" />
-                </a>
-              </Reveal>
-
-              <Reveal delay={0.25}>
-                <a
-                  className="contact-item address-item group"
-                  href="https://www.google.com/maps/dir/?api=1&destination=%2389%2F5%2C+Magadi+Main+Road%2C+Kodigehalli+Post%2C+Segehalli+Village%2C+Bangalore+91"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <span>Visit manufacturing facility</span>
-                  <strong>
-                    #89/5, Magadi Main Road,
-                    <br />
-                    Kodigehalli Post, Segehalli Village,
-                    <br />
-                    Bangalore – 91
-                  </strong>
-                  <ArrowUpRight aria-hidden="true" />
-                </a>
-              </Reveal>
-
-              <div className="pt-6">
-                <Button asChild variant="outline" size="sm" className="action-button">
-                  <Link to="/contact">
-                    Open Dedicated Contact & Workshop Page <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </div>
             </div>
+          </section>
+        </main>
 
-            <Reveal delay={0.1}>
-              <form className="contact-form" onSubmit={submitContact}>
-                <div className="form-heading">
-                  <span>Tell us about your chassis & vehicle specs.</span>
-                  <span>We’ll provide a quotation promptly.</span>
-                </div>
-                <label htmlFor="contact-name">Your name / Company</label>
-                <input
-                  id="contact-name"
-                  name="name"
-                  autoComplete="name"
-                  required
-                  placeholder="Name or Fleet Operator"
-                />
-                <label htmlFor="contact-email">Email or Phone number</label>
-                <input
-                  id="contact-email"
-                  name="email"
-                  type="text"
-                  autoComplete="email"
-                  required
-                  placeholder="you@company.com or 10-digit number"
-                />
-                <label htmlFor="contact-message">Chassis model, body requirements & timeline</label>
-                <textarea
-                  id="contact-message"
-                  name="message"
-                  required
-                  rows={3}
-                  placeholder="E.g., Tata Ace EV container body, 8-ft closed box with aerodynamic crown..."
-                />
-                <Button type="submit" size="lg" className="form-submit action-button">
-                  Send an enquiry
-                </Button>
-                {formSent && (
-                  <p className="mt-3 text-xs font-semibold text-emerald-600">
-                    Opening WhatsApp to message +91 8197810561 with your enquiry.
-                  </p>
-                )}
-              </form>
-            </Reveal>
-          </div>
-        </section>
-      </main>
-
-      <SiteFooter />
+        <SiteFooter />
+      </div>
     </>
   );
 }
