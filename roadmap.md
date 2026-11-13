@@ -1,0 +1,3 @@
+- [x] Replace the template screen with the TRANSWAGON single-page site.
+- [x] Add five image placeholders, animated sections, contact links, and mailto enquiry form.
+- [ ] Verify responsive rendering, contact destinations, page metadata, and preview build.
