@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, ArrowUpRight, Check, Play, Volume2, VolumeX } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, Play } from "lucide-react";
 
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -62,7 +62,6 @@ const galleryItems = [
 
 function GalleryPage() {
   const [selectedFilter, setSelectedFilter] = useState("All");
-  const [isMuted, setIsMuted] = useState(true);
 
   const filteredItems =
     selectedFilter === "All"
@@ -96,27 +95,16 @@ function GalleryPage() {
           </ScrollReveal>
         </section>
 
-        {/* Featured Video Section */}
+        {/* Featured Video Section - Permanently Muted AutoPlay Walkaround */}
         <section className="mb-20">
           <div className="border border-border bg-muted p-6 md:p-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-              <div>
-                <span className="text-xs uppercase font-semibold tracking-wider text-muted-foreground">
-                  Featured Build Video
-                </span>
-                <h2 className="text-xl md:text-2xl font-bold font-display mt-1">
-                  Workshop Fabrication & Walkaround
-                </h2>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsMuted((prev) => !prev)}
-                className="self-start md:self-auto flex items-center gap-2"
-                aria-label={isMuted ? "Unmute" : "Mute"}
-              >
-                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-              </Button>
+            <div className="mb-6">
+              <span className="text-xs uppercase font-semibold tracking-wider text-muted-foreground">
+                Featured Build Video
+              </span>
+              <h2 className="text-xl md:text-2xl font-bold font-display mt-1">
+                Workshop Fabrication &amp; Walkaround
+              </h2>
             </div>
 
             <div className="relative aspect-video w-full overflow-hidden rounded border border-border bg-black">
@@ -124,8 +112,10 @@ function GalleryPage() {
                 src="/images/video.mp4"
                 autoPlay
                 loop
-                muted={isMuted}
+                muted
                 playsInline
+                preload="auto"
+                poster="/images/work-3.jpg"
                 className="w-full h-full object-contain"
               />
             </div>

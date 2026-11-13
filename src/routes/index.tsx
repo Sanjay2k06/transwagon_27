@@ -8,11 +8,7 @@ import {
   Check,
   Instagram,
   MessageCircle,
-  Pause,
   Phone,
-  Play,
-  Volume2,
-  VolumeX,
 } from "lucide-react";
 
 import { SiteHeader } from "@/components/SiteHeader";
@@ -150,31 +146,26 @@ export const Route = createFileRoute("/")({
   component: TranswagonPage,
 });
 
-// Module-level flag: only show the intro video splash on initial start or browser reload
-let hasShownIntroSplash = false;
-
 function TranswagonPage() {
   const prefersReducedMotion = useReducedMotion();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const splashVideoRef = useRef<HTMLVideoElement>(null);
   const aboutImageRef = useRef<HTMLDivElement>(null);
 
-  const [splashVisible, setSplashVisible] = useState(() => {
-    if (!hasShownIntroSplash) {
-      hasShownIntroSplash = true;
-      return true;
-    }
-    return false;
-  });
+  // Splash screen: displays immediately whenever the website is opened, reloaded, or accessed via direct URL
+  const [splashVisible, setSplashVisible] = useState(true);
   const [formSent, setFormSent] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(true);
   const [videoFailed, setVideoFailed] = useState(false);
 
   useEffect(() => {
     if (!splashVisible) return;
+    // Attempt programmatic play for instant video playback on all mobile & desktop browsers
+    if (splashVideoRef.current) {
+      splashVideoRef.current.play().catch(() => {});
+    }
     const timer = window.setTimeout(
       () => setSplashVisible(false),
-      prefersReducedMotion ? 400 : 3400,
+      prefersReducedMotion ? 400 : 3200,
     );
     return () => window.clearTimeout(timer);
   }, [splashVisible, prefersReducedMotion]);
@@ -194,24 +185,6 @@ function TranswagonPage() {
     [0, 1],
     prefersReducedMotion ? ["0%", "0%"] : ["-7%", "7%"],
   );
-
-  const togglePlay = () => {
-    if (!videoRef.current) return;
-    if (isPlaying) {
-      videoRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      videoRef.current.play();
-      setIsPlaying(true);
-    }
-  };
-
-  const toggleMute = () => {
-    if (!videoRef.current) return;
-    const nextMuted = !isMuted;
-    videoRef.current.muted = nextMuted;
-    setIsMuted(nextMuted);
-  };
 
   function submitContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -256,17 +229,17 @@ function TranswagonPage() {
             {/* 1. Fullscreen Continuous Background Video */}
             <div className="splash-video-media">
               <video
-                src="/images/IMG_2314.MOV"
+                ref={splashVideoRef}
                 autoPlay
                 muted
                 loop
                 playsInline
                 preload="auto"
+                poster="/images/work-3.jpg"
                 className="splash-video"
               >
-                <source src="/images/IMG_2314.MOV" type="video/quicktime" />
-                <source src="/images/IMG_2314.MOV" type="video/mp4" />
                 <source src="/images/video.mp4" type="video/mp4" />
+                <source src="/images/IMG_2314.MOV" type="video/quicktime" />
               </video>
               <div className="splash-video-tint" />
             </div>
@@ -372,7 +345,7 @@ function TranswagonPage() {
                   src="/images/video.mp4"
                   autoPlay
                   loop
-                  muted={isMuted}
+                  muted
                   playsInline
                   preload="auto"
                   poster="/images/work-3.jpg"
@@ -390,41 +363,11 @@ function TranswagonPage() {
               <div className="hero-video-tint" />
             </div>
 
-            {/* Video Overlay Top Indicators */}
-            <div className="hero-visual-top justify-end">
-              <div className="hero-controls">
-                <button
-                  type="button"
-                  onClick={togglePlay}
-                  className="hero-control-btn"
-                  aria-label={isPlaying ? "Pause video" : "Play video"}
-                >
-                  {isPlaying ? (
-                    <>
-                      <Pause className="h-3 w-3" /> <span>Pause</span>
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-3 w-3" /> <span>Play</span>
-                    </>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={toggleMute}
-                  className="hero-control-btn"
-                  aria-label={isMuted ? "Unmute video" : "Mute video"}
-                >
-                  {isMuted ? (
-                    <>
-                      <VolumeX className="h-3 w-3" /> <span>Muted</span>
-                    </>
-                  ) : (
-                    <>
-                      <Volume2 className="h-3 w-3" /> <span>Sound On</span>
-                    </>
-                  )}
-                </button>
+            {/* Video Overlay Top Badge */}
+            <div className="hero-visual-top">
+              <div className="hero-visual-badge">
+                <span className="pulse-dot" />
+                <span>Heavy Transport Fabrication Unit</span>
               </div>
             </div>
 

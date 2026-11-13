@@ -107,10 +107,10 @@ export function IrisVehicleShowcase({
         ref={pinContainerRef}
         className="w-full h-screen relative overflow-hidden select-none bg-black"
       >
-        {/* IRIS-MASKED FULL-BLEED VEHICLE IMAGE FILLING 100% OF SECTION */}
+        {/* IRIS-MASKED FULL-BLEED VEHICLE IMAGE FILLING FULL AVAILABLE SPACE */}
         <div
           ref={maskRef}
-          className="absolute inset-0 w-full h-full overflow-hidden will-change-[clip-path]"
+          className="absolute inset-0 w-full h-full overflow-hidden will-change-[clip-path] bg-black flex items-center justify-center"
           style={{
             clipPath: "circle(0% at 50% 50%)",
             WebkitClipPath: "circle(0% at 50% 50%)",
@@ -120,7 +120,7 @@ export function IrisVehicleShowcase({
             ref={imageRef}
             src={src}
             alt={alt}
-            className="w-full h-full object-cover object-center will-change-transform"
+            className="w-full h-full object-contain md:object-cover object-center will-change-transform"
             loading="eager"
           />
           {/* Subtle Contrast Overlay for Text Readability */}
@@ -128,11 +128,11 @@ export function IrisVehicleShowcase({
         </div>
 
         {/* ONLY CENTERED TEXT: HEADING & SUBTITLE PERFECTLY CENTERED */}
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-6 sm:px-12 pointer-events-none pt-16">
-          <h2 className="font-display font-black text-3xl sm:text-5xl md:text-6xl lg:text-7xl uppercase tracking-tight text-white drop-shadow-2xl">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-4 sm:px-12 pointer-events-none">
+          <h2 className="font-display font-black text-2xl sm:text-4xl md:text-6xl lg:text-7xl uppercase tracking-tight text-white drop-shadow-2xl">
             {title}
           </h2>
-          <p className="mt-3 text-xs sm:text-base md:text-lg text-zinc-200 max-w-2xl mx-auto leading-relaxed drop-shadow-lg font-medium">
+          <p className="mt-2 sm:mt-3 text-xs sm:text-base md:text-lg text-zinc-200 max-w-2xl mx-auto leading-relaxed drop-shadow-lg font-medium">
             {subtitle}
           </p>
         </div>
