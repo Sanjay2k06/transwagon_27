@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="14" fill="#111113"/>
+  <rect x="2" y="2" width="60" height="60" rx="12" fill="none" stroke="#2e2e34" stroke-width="1.5"/>
+  <!-- Speed motion lines -->
+  <rect x="10" y="24" width="10" height="3" rx="1.5" fill="#ffffff"/>
+  <rect x="14" y="29" width="10" height="3" rx="1.5" fill="#ffffff"/>
+  <rect x="8" y="34" width="13" height="3" rx="1.5" fill="#ffffff"/>
+  <!-- Cargo box -->
+  <path d="M23 20h18v18H23z" fill="#ffffff"/>
+  <!-- Cabin -->
+  <path d="M42 23.5h5.5l4.5 6.5v8H42v-14.5z" fill="#ffffff"/>
+  <!-- Window -->
+  <path d="M44 25.5h3.2l3 4.5H44z" fill="#111113"/>
+  <!-- Wheels -->
+  <circle cx="28" cy="40" r="4.5" fill="#ffffff"/>
+  <circle cx="28" cy="40" r="2" fill="#111113"/>
+  <circle cx="47" cy="40" r="4.5" fill="#ffffff"/>
+  <circle cx="47" cy="40" r="2" fill="#111113"/>
+</svg>
